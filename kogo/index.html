@@ -354,7 +354,7 @@
         })
 
         let mode, type, kaisuu, toi, kai, correctAnswer, seitou, toiNumber, percent, chil, mam, answerNum
-        let canAnswer = true
+        let canAnswer, canNext = false
         let shutudaizumi = []
         const kijun = new Date('2024-11-01')
         const now = new Date()
@@ -496,9 +496,15 @@
             $('span#nakami').css('width', percent * 1000)
             $('button#next').show()
         }
+        canNext = true
         });
 
-        $('button#next').on('click', shutudai)
+        $('button#next').on('click', () => {
+            if (canNext) {
+                canNext = false
+                shutudai()
+            }
+        })
 
         // ボタン#kirokuがクリックされたときの処理
 $('button#kiroku').on('click', async function() {
@@ -506,7 +512,7 @@ $('button#kiroku').on('click', async function() {
     $('div#kirokuItiran').show()
     $('div#mondai').hide()
     $('div#account').hide()
-    loadRecord('all') // 初期表示は「本日」
+    changeTab('all') // 初期表示は「本日」
 })
 
 // タブ切り替えイベント
@@ -574,6 +580,31 @@ $('button#back').on('click', function() {
     $('div#kirokuItiran').hide()
     $('div#settei').show()
     $('div#account').show()
+})
+
+$(window).on('keydown', function(event) {
+    let key = event.key
+    switch (key) {
+        case '1':
+            if (!event.shiftKey && !event.ctrlKey && !event.altKey) {
+                $('button#1').click()
+            }
+            break;
+        case '2':
+            if (!event.shiftKey && !event.ctrlKey && !event.altKey) {
+                $('button#2').click()
+            }
+            break;
+        case '3':
+            if (!event.shiftKey && !event.ctrlKey && !event.altKey) {
+                $('button#3').click()
+            }
+            break;
+        case 'Enter':
+            if (!event.shiftKey && !event.ctrlKey && !event.altKey) {
+                $('button#next').click()
+            }
+    }
 })
     </script>
 </body>
