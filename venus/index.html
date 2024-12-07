@@ -148,6 +148,13 @@
             venusTopLabel.rotation.z = Math.PI
             venus.add(venusTopLabel)
 
+            const earthTopLabel = createLabel('地球')
+            earthTopLabel.position.set(0, 100, 0)
+            earthTopLabel.scale.set(1, 1, 1)
+            earthTopLabel.lookAt(topCamera.position)
+            earthTopLabel.rotation.z = Math.PI
+            earth.add(earthTopLabel)
+
             function animate() {
                 let rad = 360 - $('input#rad').val()
                 let x = Math.cos(rad * (Math.PI / 180)) * 300
@@ -168,11 +175,13 @@
                     venusEarthLabel.lookAt(earth.position)
                     sunTopLabel.material.opacity = 1
                     venusTopLabel.material.opacity = 1
+                    earthTopLabel.material.opacity = 1
                 } else {
                     sunEarthLabel.material.opacity = 0
                     venusEarthLabel.material.opacity = 0
                     sunTopLabel.material.opacity = 0
                     venusTopLabel.material.opacity = 0
+                    earthTopLabel.material.opacity = 0
                 }
                 earthRenderer.render(scene, earthCamera)
                 topRenderer.render(scene, topCamera)
