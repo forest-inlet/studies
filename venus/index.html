@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>venus simulator</title>
+    <link rel="icon" href="../amekutakao.ico">
     <style>
         *{
             margin: 0;
@@ -88,7 +89,7 @@
             sun.position.copy(light.position)
             scene.add(sun)
 
-            const earthCamera = new THREE.PerspectiveCamera(90, width / height)
+            const earthCamera = new THREE.PerspectiveCamera(60, width / height)
             earthCamera.position.set(earth.position.x, 100, earth.position.z)
 
             const topCamera = new THREE.OrthographicCamera(
@@ -98,6 +99,54 @@
             )
             topCamera.position.set(0, 1000, 0)
             topCamera.lookAt(0, 0, 0)
+            
+            const createLabel = text => {
+                const canvas = document.createElement('canvas')
+                const ctx = canvas.getContext('2d')
+                const textSize = ctx.measureText(text)
+                canvas.width = textSize.width + 40
+                canvas.height = 40
+                ctx.fillStyle = '#ffffff'
+                ctx.fillRect(0, 0, canvas.width, canvas.height)
+                ctx.fillStyle = 'black'
+                ctx.font = '24px Arial'
+                ctx.textAlign = 'center'
+                ctx.textBaseline = 'middle'
+                ctx.fillText(text, canvas.width / 2, canvas.height / 2)
+
+                const texture = new THREE.CanvasTexture(canvas)
+                const labelGeometry = new THREE.PlaneGeometry(canvas.width, 40)
+                const labelMaterial = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true
+                })
+                
+                return new THREE.Mesh(labelGeometry, labelMaterial)
+            }
+
+            const sunEarthLabel = createLabel('太陽')
+            sunEarthLabel.position.set(0, 110, 0)
+            sunEarthLabel.scale.set(0.5, 0.5, 0.5)
+            sun.add(sunEarthLabel)
+
+            const venusEarthLabel = createLabel('金星')
+            venusEarthLabel.position.set(0, 60, 0)
+            venusEarthLabel.scale.set(0.5, 0.5, 0.5)
+            venus.add(venusEarthLabel)
+
+            const sunTopLabel = createLabel('太陽')
+            sunTopLabel.position.set(0, 100, 0)
+            sunTopLabel.scale.set(1, 1, 1)
+            sunTopLabel.lookAt(topCamera.position)
+            sunTopLabel.rotation.z = Math.PI
+            sun.add(sunTopLabel)
+
+            const venusTopLabel = createLabel('金星')
+            venusTopLabel.position.set(0, 100, 0)
+            venusTopLabel.scale.set(1, 1, 1)
+            venusTopLabel.lookAt(topCamera.position)
+            venusTopLabel.rotation.z = Math.PI
+            venus.add(venusTopLabel)
 
             function animate() {
                 let rad = 360 - $('input#rad').val()
@@ -111,6 +160,19 @@
                 } else {
                     earthRenderer.setSize(width, height)
                     topRenderer.setSize(width * 0.25, height * 0.25)
+                }
+                if ($('input#info').prop('checked')) {
+                    sunEarthLabel.material.opacity = 1
+                    sunEarthLabel.lookAt(earth.position)
+                    venusEarthLabel.material.opacity = 1
+                    venusEarthLabel.lookAt(earth.position)
+                    sunTopLabel.material.opacity = 1
+                    venusTopLabel.material.opacity = 1
+                } else {
+                    sunEarthLabel.material.opacity = 0
+                    venusEarthLabel.material.opacity = 0
+                    sunTopLabel.material.opacity = 0
+                    venusTopLabel.material.opacity = 0
                 }
                 earthRenderer.render(scene, earthCamera)
                 topRenderer.render(scene, topCamera)
@@ -177,7 +239,7 @@
                 }, 25)
             }, 500)
         })
-        $('button#left').on('mouseup mouseleave touchend thouchcancel', () => {
+        $('button#left').on('mouseup mouseleave touchend touchcancel', () => {
             clearInterval(leftInterval)
             clearTimeout(leftTimeout)
         })
@@ -197,7 +259,7 @@
                 }, 25)
             }, 500)
         })
-        $('button#right').on('mouseup mouseleave touchend thouchcancel', () => {
+        $('button#right').on('mouseup mouseleave touchend touchcancel', () => {
             clearInterval(rightInterval)
             clearTimeout(rightTimeout)
         })
