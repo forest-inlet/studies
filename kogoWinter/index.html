@@ -563,7 +563,7 @@
                     }
                 }
                 miss = all - miss
-                let percent = Math.floor(((all - miss) / all) * 1000) / 10
+                let percent = Math.floor(((miss) / all) * 1000) / 10
                 data.push(percent)
                 data.push(`${percent}% (${miss}/${all})`)
                 kiroku.push(data)
