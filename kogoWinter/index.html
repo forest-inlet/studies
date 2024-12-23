@@ -196,7 +196,7 @@
         const auth = getAuth(app)
         const googleProvider = new GoogleAuthProvider()
 
-        let v = 1
+        let v = 2
 
         let versionRef = getRef(database, 'version')
         onChildChanged(versionRef, snapshot => {
