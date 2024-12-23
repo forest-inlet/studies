@@ -10,8 +10,12 @@
             padding: 0;
         }
 
-        body{
+        body, #kiroku{
             text-align: center;
+        }
+
+        #kirokuTable{
+            margin: 0 auto;
         }
 
         div#update{
@@ -29,7 +33,7 @@
             border-radius: 0;
         }
 
-        #signinWindow, #signupWindow, #withGoogleUName, #shutudai, #kekka, #update{
+        #signinWindow, #signupWindow, #withGoogleUName, #shutudai, #kekka, #update, #kiroku{
             display: none;
         }
 
@@ -59,6 +63,10 @@
         .kotaeawase.sentaku:not(.seikai){
             background-color: lightcoral;
         }
+
+        .kirokuSentaku{
+            background-color: lightblue;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
@@ -68,7 +76,9 @@
     <div id="signinWindow">
         <span class="waku">ログイン</span><br>
         メールアドレス：<input type="mail" id="signinMail"><br>
+        <span id="signinMailError"></span><br>
         パスワード：<input type="password" id="signinPass"><br>
+        <span id="signinPassError"></span><br>
         <span class="waku"><label><input type="checkbox" onchange="$(this).prop('checked') ? $('#signinPass').prop('type', 'text') : $('#signinPass').prop('type', 'password')">パスワードを表示</label></span><br>
         <button class="cancel">キャンセル</button>
         <button id="sendSignin">ログイン</button>
@@ -79,10 +89,14 @@
     <div id="signupWindow">
         <span class="waku">登録</span><br>
         メールアドレス：<input type="email" id="signupMail"><br>
+        <span id="signupMailError"></span><br>
         パスワード：<input type="password" id="signupPass"><br>
+        <span id="signupPassError"></span><br>
         パスワード(再入力)：<input type="password" id="signupRePass"><br>
+        <span id="signupRePassError"></span><br>
         <span class="waku"><label><input type="checkbox" onchange="$(this).prop('checked') ? $('#signupPass, #signupRePass').prop('type', 'text') : $('#signupPass, #signupRePass').prop('type', 'password')">パスワードを表示</label></span><br>
         ユーザーネーム：<input type="text" id="signupUName"><br>
+        <span id="signupUNameError"></span><br>
         <button class="cancel">キャンセル</button>
         <button id="sendSignup">登録</button>
         <hr noshade="true">
@@ -115,7 +129,7 @@
         </div>
         <div id="accounts">
             ユーザー名：<span id="name"></span><br>
-            <button id="kiroku">学習記録</button>
+            <button id="showKiroku">学習記録</button>
             <button id="logout">ログアウト</button>
         </div>
     </div>
@@ -139,6 +153,20 @@
         <button id="end">ホームへ</button>
     </div>
 
+    <div id="kiroku">
+        <button id="back">ホームへ</button><br>
+        <br>
+        <button id="today">今日</button>
+        <button id="week">一週間</button>
+        <button id="allDays">全期間</button><br>
+        <br>
+        <button id="kirokuToImi">古語→意味</button>
+        <button id="kirokuToKogo">意味→古語</button><br>
+        <br>
+        <table id="kirokuTable" border="1" cellspacing="0">
+        </table>
+    </div>
+
     <script type="module">
         import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
         import {getDatabase, ref as getRef, get, set, update, runTransaction, onChildChanged} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js'
@@ -146,9 +174,13 @@
         import {data} from './data.js'
 
         let login = false
-        let userRef, userRefText, uName, kaisuu, mode, type, seitou, toi, kai, seikai, toiNan, chil
-        let canAnswer, canNext = false
+        let userRef, userRefText, uName, kaisuu, mode, type, seitou, toi, kai, seikai, toiNan, chil, kirokuKikan, kirokuMode
+        let canAnswer = false
+        let canNext = false
         let shutudaizumi = []
+
+        let now = new Date()
+        const date = Math.floor(now.getTime() / 86400000)
 
         const firebaseConfig = {
             apiKey: "AIzaSyAEs5cxcElZpvt6UMeMgur_bi7RSmvS9ro",
@@ -195,6 +227,8 @@
         })
 
         $('#sendSignin').on('click', () => {
+            $('#signinMailError').text('')
+            $('#signinPassError').text('')
             const mail = $('#signinMail').val()
             const pass = $('#signinPass').val()
             signInWithEmailAndPassword(auth, mail, pass)
@@ -205,34 +239,73 @@
                 $('#home').show()
             })
             .catch(error => {
-                alert(error.message)
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        $('#signinMailError').text('このメールアドレスは登録されていません')
+                        break;
+                    case 'auth/wrong-password':
+                        $('#signinPassError').text('パスワードが違います')
+                        break;
+                    case 'auth/invalid-email':
+                        $('#signinMailError').text('メールアドレスの形式が正しくありません')
+                        break;
+                    case 'auth/invalid-credential':
+                        $('#signinPassError').text('無効な認証です')
+                        break;
+                    default:
+                        alert(error.message)
+                        break;
+                }
             })
         })
         
         $('#sendSignup').on('click', () => {
+            $('#signupMailError').text('')
+            $('#signupPassError').text('')
+            $('#signupRePassError').text('')
+            $('#signupUNameError').text('')
             const mail = $('#signupMail').val()
             const pass = $('#signupPass').val()
             const rePass = $('#signupRePass').val()
             const uName = $('#signupUName').val()
             if(pass === rePass){
-                createUserWithEmailAndPassword(auth, mail, pass)
-                .then(async () => {
-                    userRef = getRef(database, 'users/' + auth.currentUser.uid)
-                    await set(userRef, {
-                        name: uName
+                if (uName === '') {
+                    $('#signupUNameError').text('ユーザーネームを入力してください')
+                    return
+                } else {
+                    createUserWithEmailAndPassword(auth, mail, pass)
+                    .then(async () => {
+                        userRef = getRef(database, 'users/' + auth.currentUser.uid)
+                        await set(userRef, {
+                            name: uName
+                        })
+                        $('#signupMail').val('')
+                        $('#signupPass').val('')
+                        $('#signupRePass').val('')
+                        $('#signupUName').val('')
+                        $('#signupWindow').hide()
+                        $('#name').text(uName)
+                        $('#home').show()
                     })
-                    $('#signupMail').val('')
-                    $('#signupPass').val('')
-                    $('#signupRePass').val('')
-                    $('#signupUName').val('')
-                    $('#signupWindow').hide()
-                    $('#home').show()
-                })
-                .catch(error => {
-                    alert(error.message)
-                })
+                    .catch(error => {
+                        switch (error.code) {
+                            case 'auth/email-already-in-use':
+                                $('#signupMailError').text('このメールアドレスは既に使用されています')
+                                break;
+                            case 'auth/weak-password':
+                                $('#signupPassError').text('パスワードは6文字以上で設定してください')
+                                break;
+                            case 'auth/invalid-email':
+                                $('#signupMailError').text('メールアドレスの形式が正しくありません')
+                                break;
+                            default:
+                                alert(error.message)
+                                break;
+                        }
+                    })
+                }
             }else{
-                alert('パスワードが一致しません')
+                $('#signupRePassError').text('パスワードが一致しません')
             }
         })
 
@@ -281,6 +354,13 @@
         $('#signup').on('click', () => {
             $('#signupWindow').show()
             $('#home').hide()
+        })
+
+        $('.cancel').on('click', () => {
+            $('#signinWindow').hide()
+            $('#signupWindow').hide()
+            $('#withGoogleUName').hide()
+            $('#home').show()
         })
 
         $('#start').on('click', () => {
@@ -366,7 +446,7 @@
                     $('#answer').text(`不正解です。正解は「${seikai}」です。`)
 
                     if (login) {
-                        let ref = getRef(database, `${userRefText}/kogoWinter/${toi === 0 ? 'toImi' : 'toKogo'}/${data[toiNan][0]}/miss`)
+                        let ref = getRef(database, `${userRefText}/kogoWinter/${toi === 0 ? 'toImi' : 'toKogo'}/${data[toiNan][0]}/${date}/miss`)
                         runTransaction(ref, data => {
                             return (data || 0) + 1
                         })
@@ -375,7 +455,7 @@
                 $(this).addClass('sentaku')
 
                 if (login) {
-                    let ref = getRef(database, `${userRefText}/kogoWinter/${toi === 0 ? 'toImi' : 'toKogo'}/${data[toiNan][0]}/all`)
+                    let ref = getRef(database, `${userRefText}/kogoWinter/${toi === 0 ? 'toImi' : 'toKogo'}/${data[toiNan][0]}/${date}/all`)
                     runTransaction(ref, data => {
                         return (data || 0) + 1
                     })
@@ -397,10 +477,91 @@
             }
         })
 
-        $('#end').on('click', () => {
+        $('#end, #back').on('click', () => {
             $('#kekka').hide()
+            $('#kiroku').hide()
             $('#home').show()
         })
+
+        $('#showKiroku').on('click', () => {
+            $('#home').hide()
+            $('#kiroku').show()
+
+            $('#today').click()
+            $('#kirokuToImi').click()
+        })
+
+        $('#today, #week, #allDays').on('click', function() {
+            $('#today, #week, #allDays').removeClass('kirokuSentaku')
+            $(this).addClass('kirokuSentaku')
+            kirokuKikan = $(this).attr('id')
+            showKiroku()
+        })
+
+        $('#kirokuToImi, #kirokuToKogo').on('click', function() {
+            $('#kirokuToImi, #kirokuToKogo').removeClass('kirokuSentaku')
+            $(this).addClass('kirokuSentaku')
+            kirokuMode = $(this).attr('id')
+            showKiroku()
+        })
+        
+        async function showKiroku() {
+            let startDate, kirokuKijun
+            switch (kirokuKikan) {
+                case 'today':
+                    startDate = date
+                    break;
+                case 'week':
+                    startDate = date - 7
+                    break;
+                case 'allDays':
+                    startDate = 0
+                    break;
+            }
+            switch (kirokuMode) {
+                case 'kirokuToImi':
+                    kirokuKijun = 'toImi'
+                    break;
+                case 'kirokuToKogo':
+                    kirokuKijun = 'toKogo'
+                    break;
+            }
+            let kiorkuRef = getRef(database, `${userRefText}/kogoWinter/${kirokuKijun}`)
+            let kirokuData
+            await get(kiorkuRef).then(snapshot => {
+                kirokuData = snapshot.val()
+            })
+            console.log(kirokuData)
+            let kiroku = []
+            for (const index in kirokuData) {
+                let data = [index]
+                let miss = 0
+                let all = 0
+                for (const date in kirokuData[index]) {
+                    if (date >= startDate) {
+                        miss += kirokuData[index][date].miss ?? 0
+                        all += kirokuData[index][date].all ?? 0
+                    }
+                }
+                miss = all - miss
+                let percent = Math.floor(((all - miss) / all) * 1000) / 10
+                data.push(percent)
+                data.push(`${percent}% (${miss}/${all})`)
+                kiroku.push(data)
+            }
+            kiroku.sort((a, b) => {
+                return b[1] - a[1]
+            })
+
+            let tableHead = $('<tr><th>単語</th><th>正解率</th></tr>')
+            $('#kirokuTable').empty().append(tableHead)
+            for (const data of kiroku) {
+                let tango = data[0]
+                let seitouritu = data[2]
+                let tr = $(`<tr><td>${tango}</td><td>${seitouritu}</td></tr>`)
+                $('#kirokuTable').append(tr)
+            }
+        }
     </script>
 </body>
 </html>
