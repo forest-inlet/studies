@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>古語単語　冬休みEDITION</title>
-    <link rel="stylesheet" href="../amekutakao.ico">
+    <link rel="icon" href="../amekutakao.ico">
     <style>
         *{
             margin: 0;
@@ -29,7 +29,7 @@
             border-radius: 0;
         }
 
-        #signinWindow, #signupWindow, #withGoogleUName, #shutudai, #kekka{
+        #signinWindow, #signupWindow, #withGoogleUName, #shutudai, #kekka, #update{
             display: none;
         }
 
@@ -141,7 +141,7 @@
 
     <script type="module">
         import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
-        import {getDatabase, ref as getRef, get, set, update, runTransaction} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js'
+        import {getDatabase, ref as getRef, get, set, update, runTransaction, onChildChanged} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js'
         import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signOut} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js'
         import {data} from './data.js'
 
@@ -163,6 +163,17 @@
         const database = getDatabase(app)
         const auth = getAuth(app)
         const googleProvider = new GoogleAuthProvider()
+
+        let v = 1
+
+        let versionRef = getRef(database, 'version')
+        onChildChanged(versionRef, snapshot => {
+            let newVersion = snapshot.val()
+            console.log(newVersion)
+            if(newVersion > v){
+                $('#update').show()
+            }
+        })
 
         onAuthStateChanged(auth, user => {
             if(user){
