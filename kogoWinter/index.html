@@ -569,7 +569,7 @@
                 kiroku.push(data)
             }
             kiroku.sort((a, b) => {
-                return b[1] - a[1]
+                return a[1] - b[1]
             })
 
             let tableHead = $('<tr><th>単語</th><th>正解率</th></tr>')
