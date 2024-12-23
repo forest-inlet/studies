@@ -201,7 +201,6 @@
         let versionRef = getRef(database, 'version')
         onChildChanged(versionRef, snapshot => {
             let newVersion = snapshot.val()
-            console.log(newVersion)
             if(newVersion > v){
                 $('#update').show()
             }
@@ -223,7 +222,6 @@
                 $('#users').show()
                 $('#accounts').hide()
             }
-            console.log(login)
         })
 
         $('#sendSignin').on('click', () => {
@@ -552,7 +550,6 @@
             await get(kiorkuRef).then(snapshot => {
                 kirokuData = snapshot.val()
             })
-            console.log(kirokuData)
             let kiroku = []
             for (const index in kirokuData) {
                 let data = [index]
