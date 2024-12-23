@@ -477,6 +477,27 @@
             }
         })
 
+        $(window).on('keydown', event => {
+            switch (event.code) {
+                case 'Digit1':
+                case 'Numpad1':
+                    $('#1').click()
+                    break;
+                case 'Digit2':
+                case 'Numpad2':
+                    $('#2').click()
+                    break;
+                case 'Digit3':
+                case 'Numpad3':
+                    $('#3').click()
+                    break;
+                case 'Enter':
+                    $('#next').click()
+                    break;
+            }
+        
+        })
+
         $('#end, #back').on('click', () => {
             $('#kekka').hide()
             $('#kiroku').hide()
