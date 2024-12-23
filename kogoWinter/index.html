@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>古語単語　冬休みEDITION</title>
+    <link rel="stylesheet" href="../amekutakao.ico">
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+
+        body{
+            text-align: center;
+        }
+
+        div#update{
+            background-color: aqua;
+            margin-bottom: 5px;
+        }
+
+        hr{
+            margin: 5px;
+        }
+
+        button, .waku{
+            background-color: white;
+            border: 1px solid black;
+            border-radius: 0;
+        }
+
+        #signinWindow, #signupWindow, #withGoogleUName, #shutudai, #kekka{
+            display: none;
+        }
+
+        span#sotowaku{
+            text-align: left;
+            display: inline-block;
+            background-color: lightgray;
+            border-radius: 10px;
+            height: 20px;
+            width: 80%;
+        }
+
+        span#nakami{
+            display: inline-block;
+            background-color: lightblue;
+            border-radius: 9px;
+            height: 18px;
+            width: 0px;
+            margin: 1px;
+            transition: width 1s ease-in-out;
+        }
+
+        .kotaeawase.seikai{
+            background-color: lightgreen;
+        }
+
+        .kotaeawase.sentaku:not(.seikai){
+            background-color: lightcoral;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div id="update">アップデートがあります。更新するには再読み込みしてください。<button onclick="window.location.reload()">再読み込み</button></div>
+
+    <div id="signinWindow">
+        <span class="waku">ログイン</span><br>
+        メールアドレス：<input type="mail" id="signinMail"><br>
+        パスワード：<input type="password" id="signinPass"><br>
+        <span class="waku"><label><input type="checkbox" onchange="$(this).prop('checked') ? $('#signinPass').prop('type', 'text') : $('#signinPass').prop('type', 'password')">パスワードを表示</label></span><br>
+        <button class="cancel">キャンセル</button>
+        <button id="sendSignin">ログイン</button>
+        <hr noshade="true">
+        <button class="google">googleアカウントでログイン</button>
+    </div>
+
+    <div id="signupWindow">
+        <span class="waku">登録</span><br>
+        メールアドレス：<input type="email" id="signupMail"><br>
+        パスワード：<input type="password" id="signupPass"><br>
+        パスワード(再入力)：<input type="password" id="signupRePass"><br>
+        <span class="waku"><label><input type="checkbox" onchange="$(this).prop('checked') ? $('#signupPass, #signupRePass').prop('type', 'text') : $('#signupPass, #signupRePass').prop('type', 'password')">パスワードを表示</label></span><br>
+        ユーザーネーム：<input type="text" id="signupUName"><br>
+        <button class="cancel">キャンセル</button>
+        <button id="sendSignup">登録</button>
+        <hr noshade="true">
+        <button class="google">googleアカウントで登録</button>
+    </div>
+
+    <div id="withGoogleUName">
+        ユーザー名：<input type="text" id="googleUName"><br>
+        <button id="touroku">登録</button>
+    </div>
+
+    <div id="home">
+        <div id="mode">
+            <span class="waku">出題モード</span><br>
+            <label><input type="radio" name="mode" id="toImi" checked>古語→意味</label><br>
+            <label><input type="radio" name="mode" id="toKogo">意味→古語</label>
+        </div>
+        <br>
+        <div id="type">
+            <span class="waku">出題方法</span><br>
+            <label><input type="radio" name="type" id="all" checked>全て出題</label><br>
+            <label><input type="radio" name="type" id="nan" onchange="$(this).prop('checked') ? $('input#kaisuu').prop('disabled', false) : $('input#kaisuu').prop('disabled', 'disabled')"><input type="number" id="kaisuu" disabled="true" max="110" min="1" value="10">問出題</label>
+        </div>
+        <br>
+        <button id="start">スタート</button>
+        <hr noshade="true">
+        <div id="users">
+            <button id="signin">ログイン</button>
+            <button id="signup">登録</button>
+        </div>
+        <div id="accounts">
+            ユーザー名：<span id="name"></span><br>
+            <button id="kiroku">学習記録</button>
+            <button id="logout">ログアウト</button>
+        </div>
+    </div>
+
+    <div id="shutudai">
+        <div id="shintyoku">
+            <span id="sotowaku"><span id="nakami"></span></span>
+            <span id="percent"></span>% (<span id="chil"></span>/<span id="mam"></span>)
+        </div>
+        <div id="toi"></div>
+        <button id="1"></button><br>
+        <button id="2"></button><br>
+        <button id="3"></button><br>
+        <br>
+        <span id="answer"></span>
+        <button id="next">次へ</button>
+    </div>
+
+    <div id="kekka">
+        <span id="seitou"></span>/<span id="every"></span>問正解でした<br>
+        <button id="end">ホームへ</button>
+    </div>
+
+    <script type="module">
+        import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
+        import {getDatabase, ref as getRef, get, set, update, runTransaction} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js'
+        import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signOut} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js'
+        import {data} from './data.js'
+
+        let login = false
+        let userRef, userRefText, uName, kaisuu, mode, type, seitou, toi, kai, seikai, toiNan, chil
+        let canAnswer, canNext = false
+        let shutudaizumi = []
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAEs5cxcElZpvt6UMeMgur_bi7RSmvS9ro",
+            authDomain: "user-data-forestinlet.firebaseapp.com",
+            databaseURL: "https://user-data-forestinlet-default-rtdb.firebaseio.com",
+            projectId: "user-data-forestinlet",
+            storageBucket: "user-data-forestinlet.appspot.com",
+            messagingSenderId: "620374676064",
+            appId: "1:620374676064:web:e815cfe3d09ffc109aa905"
+        }
+        const app = initializeApp(firebaseConfig)
+        const database = getDatabase(app)
+        const auth = getAuth(app)
+        const googleProvider = new GoogleAuthProvider()
+
+        onAuthStateChanged(auth, user => {
+            if(user){
+                login = true
+                $('#users').hide()
+                $('#accounts').show()
+                userRefText = 'users/' + user.uid
+                userRef = getRef(database, userRefText)
+                get(userRef).then(snapshot => {
+                    uName = snapshot.val()?.name
+                    $('#name').text(uName)
+                })
+            }else{
+                login = false
+                $('#users').show()
+                $('#accounts').hide()
+            }
+            console.log(login)
+        })
+
+        $('#sendSignin').on('click', () => {
+            const mail = $('#signinMail').val()
+            const pass = $('#signinPass').val()
+            signInWithEmailAndPassword(auth, mail, pass)
+            .then(() => {
+                $('#signinMail').val('')
+                $('#signinPass').val('')
+                $('#signinWindow').hide()
+                $('#home').show()
+            })
+            .catch(error => {
+                alert(error.message)
+            })
+        })
+        
+        $('#sendSignup').on('click', () => {
+            const mail = $('#signupMail').val()
+            const pass = $('#signupPass').val()
+            const rePass = $('#signupRePass').val()
+            const uName = $('#signupUName').val()
+            if(pass === rePass){
+                createUserWithEmailAndPassword(auth, mail, pass)
+                .then(async () => {
+                    userRef = getRef(database, 'users/' + auth.currentUser.uid)
+                    await set(userRef, {
+                        name: uName
+                    })
+                    $('#signupMail').val('')
+                    $('#signupPass').val('')
+                    $('#signupRePass').val('')
+                    $('#signupUName').val('')
+                    $('#signupWindow').hide()
+                    $('#home').show()
+                })
+                .catch(error => {
+                    alert(error.message)
+                })
+            }else{
+                alert('パスワードが一致しません')
+            }
+        })
+
+        $('.google').on('click', () => {
+            signInWithPopup(auth, googleProvider)
+            .then(result => {
+                userRefText = 'users/' + result.user.uid
+                userRef = getRef(database, userRefText)
+                $('#signinWindow').hide()
+                $('#signupWindow').hide()
+                
+                return get(userRef)
+            })
+            .then(snapshot => {
+                if(snapshot.exists()){
+                    $('#home').show()
+                }else{
+                    $('#withGoogleUName').show()
+                }
+            })
+            .catch(error => {
+                alert(error.message)
+            })
+        })
+
+        $('#touroku').on('click', () => {
+            const uName = $('#googleUName').val()
+            update(userRef, {
+                name: uName
+            })
+            $('#googleUName').val('')
+            $('#name').text(uName)
+            $('#withGoogleUName').hide()
+            $('#home').show()
+        })
+
+        $('#logout').on('click', () => {
+            signOut(auth)
+        })
+
+        $('#signin').on('click', () => {
+            $('#signinWindow').show()
+            $('#home').hide()
+        })
+
+        $('#signup').on('click', () => {
+            $('#signupWindow').show()
+            $('#home').hide()
+        })
+
+        $('#start').on('click', () => {
+            mode = $('#toImi').prop('checked') ? 'toImi' : 'toKogo'
+            type = $('#all').prop('checked') ? 'all' : 'nan'
+            if(type === 'nan'){
+                kaisuu = $('#kaisuu').val()
+            } else {
+                kaisuu = 111
+            }
+            if(mode === 'toImi'){
+                toi = 0
+                kai = 1
+            } else {
+                toi = 1
+                kai = 0
+            }
+            shutudaizumi = []
+            canAnswer = true
+            canNext = false
+            seitou = 0
+            $('#home').hide()
+            $('#shutudai').show()
+            $('#chil').text(chil = 0)
+            $('#mam').text(kaisuu)
+            $('#percent').text('0')
+            $('#nakami').css('width', '0')
+            shutudai()
+        })
+
+        function shutudai() {
+            canNext = false
+            $('#answer').text('')
+            $('#next').hide()
+            $('button').removeClass('seikai')
+            $('button').removeClass('sentaku')
+            $('button').removeClass('kotaeawase')
+            if(shutudaizumi.length >= kaisuu) {
+                $('#shutudai').hide()
+                $('#kekka').show()
+                $('#seitou').text(seitou)
+                $('#every').text(kaisuu)
+                return
+            }
+            
+            do {
+                toiNan = Math.floor(Math.random() * data.length)
+            } while (shutudaizumi.includes(toiNan))
+
+            shutudaizumi.push(toiNan)
+
+            let toiText = data[toiNan][toi]
+            seikai = data[toiNan][kai]
+
+            let sentaku = [seikai]
+            while (sentaku.length < 3) {
+                let sentakuNan
+                do {
+                    sentakuNan = Math.floor(Math.random() * data.length)
+                } while (sentaku.includes(data[sentakuNan][kai]))
+                sentaku.push(data[sentakuNan][kai])
+            }
+
+            sentaku.sort(() => Math.random() - 0.5)
+
+            $('#toi').text(toiText)
+            $('#1').text(sentaku[0])
+            $('#2').text(sentaku[1])
+            $('#3').text(sentaku[2])
+            $(`#${sentaku.indexOf(seikai) + 1}`).addClass('seikai')
+            canAnswer = true
+        }
+
+        $('#1, #2, #3').on('click', function() {
+            if(canAnswer) {
+                $('#next').show()
+                canAnswer = false
+                $('#1, #2, #3').addClass('kotaeawase')
+                if($(this).hasClass('seikai')) {
+                    seitou ++
+                    $('#answer').text('正解')
+                } else {
+                    $('#answer').text(`不正解です。正解は「${seikai}」です。`)
+
+                    if (login) {
+                        let ref = getRef(database, `${userRefText}/kogoWinter/${toi === 0 ? 'toImi' : 'toKogo'}/${data[toiNan][0]}/miss`)
+                        runTransaction(ref, data => {
+                            return (data || 0) + 1
+                        })
+                    }
+                }
+                $(this).addClass('sentaku')
+
+                if (login) {
+                    let ref = getRef(database, `${userRefText}/kogoWinter/${toi === 0 ? 'toImi' : 'toKogo'}/${data[toiNan][0]}/all`)
+                    runTransaction(ref, data => {
+                        return (data || 0) + 1
+                    })
+                }
+                
+                chil ++
+
+                canNext = true
+            }
+        })
+
+        $('#next').on('click', () => {
+            if(canNext) {
+                shutudai()
+                $('#chil').text(chil)
+                let percent = Math.floor((chil / kaisuu) * 1000) / 10
+                $('#percent').text(percent)
+                $('#nakami').css('width', `${percent}%`)
+            }
+        })
+
+        $('#end').on('click', () => {
+            $('#kekka').hide()
+            $('#home').show()
+        })
+    </script>
+</body>
+</html>
