@@ -196,7 +196,7 @@
         const auth = getAuth(app)
         const googleProvider = new GoogleAuthProvider()
 
-        let v = 4
+        let v = 5
 
         let versionRef = getRef(database, 'version')
         onChildChanged(versionRef, snapshot => {
@@ -562,6 +562,7 @@
                         all += kirokuData[index][date].all ?? 0
                     }
                 }
+                if (all === 0) continue
                 miss = all - miss
                 let percent = Math.floor(((miss) / all) * 1000) / 10
                 data.push(percent)
