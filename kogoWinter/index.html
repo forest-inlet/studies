@@ -196,7 +196,7 @@
         const auth = getAuth(app)
         const googleProvider = new GoogleAuthProvider()
 
-        let v = 5
+        let v = 6
 
         let versionRef = getRef(database, 'version')
         onChildChanged(versionRef, snapshot => {
@@ -476,25 +476,27 @@
         })
 
         $(window).on('keydown', event => {
-            switch (event.code) {
-                case 'Digit1':
-                case 'Numpad1':
-                    $('#1').click()
-                    break;
-                case 'Digit2':
-                case 'Numpad2':
-                    $('#2').click()
-                    break;
-                case 'Digit3':
-                case 'Numpad3':
-                    $('#3').click()
-                    break;
-                case 'Enter':
-                case 'NumpadEnter':
-                    $('#next').click()
-                    break;
+            if (!event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+                event.preventDefault()
+                switch (event.code) {
+                    case 'Digit1':
+                    case 'Numpad1':
+                        $('#1').click()
+                        break;
+                    case 'Digit2':
+                    case 'Numpad2':
+                        $('#2').click()
+                        break;
+                    case 'Digit3':
+                    case 'Numpad3':
+                        $('#3').click()
+                        break;
+                    case 'Enter':
+                    case 'NumpadEnter':
+                        $('#next').click()
+                        break;
+                }
             }
-        
         })
 
         $('#end, #back').on('click', () => {
