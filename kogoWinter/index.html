@@ -196,7 +196,7 @@
         const auth = getAuth(app)
         const googleProvider = new GoogleAuthProvider()
 
-        let v = 6
+        let v = 7
 
         let versionRef = getRef(database, 'version')
         onChildChanged(versionRef, snapshot => {
@@ -367,7 +367,7 @@
             if(type === 'nan'){
                 kaisuu = $('#kaisuu').val()
             } else {
-                kaisuu = 111
+                kaisuu = data.length
             }
             if(mode === 'toImi'){
                 toi = 0
@@ -414,12 +414,14 @@
             seikai = data[toiNan][kai]
 
             let sentaku = [seikai]
+            let sentakuImi = [data[toiNan][1]]
             while (sentaku.length < 3) {
                 let sentakuNan
                 do {
                     sentakuNan = Math.floor(Math.random() * data.length)
-                } while (sentaku.includes(data[sentakuNan][kai]))
+                } while (sentaku.includes(data[sentakuNan][kai]) || sentakuImi.includes(data[sentakuNan][1]))
                 sentaku.push(data[sentakuNan][kai])
+                sentakuImi.push(data[sentakuNan][1])
             }
 
             sentaku.sort(() => Math.random() - 0.5)
