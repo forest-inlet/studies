@@ -167,7 +167,7 @@
         </table>
     </div>
 
-    <script type="module" defer>
+    <script type="module">
         import {initializeApp} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js'
         import {getDatabase, ref as getRef, get, set, update, runTransaction, onChildChanged} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js'
         import {getAuth, onAuthStateChanged, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, createUserWithEmailAndPassword, signOut} from 'https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js'
@@ -179,8 +179,7 @@
         let canNext = false
         let shutudaizumi = []
 
-        let now = new Date()
-        const date = Math.floor(now.getTime() / 86400000)
+        let date = getDate()
 
         const firebaseConfig = {
             apiKey: "AIzaSyAEs5cxcElZpvt6UMeMgur_bi7RSmvS9ro",
@@ -196,7 +195,7 @@
         const auth = getAuth(app)
         const googleProvider = new GoogleAuthProvider()
 
-        let v = 7
+        let v = 8
 
         let versionRef = getRef(database, 'version')
         onChildChanged(versionRef, snapshot => {
@@ -586,6 +585,23 @@
                 $('#kirokuTable').append(tr)
             }
         }
+
+        function getDate() {
+            let now = new Date()
+            let greenwich = now.setHours(now.getHours() + 9)
+            return Math.floor(greenwich / 86400000)
+        }
+
+        function changeDateTimer() {
+            let now = new Date()
+            let midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 24, 0, 0)
+            let timer = midnight - now
+            setTimeout(() => {
+                date = getDate()
+                changeDateTimer()
+            }, timer)
+        }
+        changeDateTimer()
     </script>
 </body>
 </html>
